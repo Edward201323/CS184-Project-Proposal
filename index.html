@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CS 184 final project proposal: a real-time digital twin of the SO-101 robot arm, with custom kinematics and OpenGL rendering.">
+  <title>Robotic Arm Simulator | CS 184 Project Proposal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <div class="print-page">
+      <header>
+        <div class="masthead"><span>CS 184/284A · Fall 2026</span><span>Final project proposal</span></div>
+        <p class="section-label">01 / Title, Summary and Team Members</p>
+        <h1>Robotic Arm Simulator</h1>
+        <p class="subtitle">A real-time digital twin of the SO-101 arm</p>
+        <p class="summary">We will build a real-time digital twin of the SO-101 robot arm: moving the physical leader arm by hand will move a rendered 3D arm live. We will implement the model loader, forward kinematics, and OpenGL renderer ourselves. As a stretch goal, a physics mode will track the measured angles using simulated joint torques.</p>
+        <p class="team"><strong>Team:</strong> Rachael Chen, Edward Song, Kevin Yamashita, <span class="placeholder">[NAME 4]</span><br>All CS184</p>
+        <p class="site-link"><strong>Proposal webpage:</strong> <a href="https://Edward201323.github.io/CS184-Project-Proposal/">edward201323.github.io/CS184-Project-Proposal/</a><br>Planned deployment on GitHub Pages.</p>
+      </header>
+
+      <section aria-labelledby="problem">
+        <h2 id="problem"><span class="section-number">02 /</span> Problem Description</h2>
+        <p>Low-cost arms are used to collect demonstrations for imitation learning. A live 3D twin would help us inspect poses, debug joint mappings, and record demonstrations with visual feedback. The challenge is to match the physical arm accurately while keeping input delay low and rendering at an interactive frame rate.</p>
+        <p>The SO-101 uses a leader/follower teleoperation setup. We will read its backdrivable leader as it is moved by hand, using six joint inputs: shoulder pan, shoulder lift, elbow flex, wrist flex, wrist roll, and gripper. A Python process will use LeRobot for readings and calibration, then send timestamped angles over a local socket to our C++ application for forward kinematics and OpenGL rendering.</p>
+        <p>Our main challenges are parsing URDF transforms and STL meshes, calibrating joint signs, offsets, and units, and keeping motor reads from blocking rendering. Shading, materials, and shadows must make the arm’s shape and pose clear without losing responsiveness.</p>
+
+        <figure class="pipeline">
+          <svg viewBox="0 0 900 252" role="img" aria-labelledby="pipeline-title pipeline-desc" xmlns="http://www.w3.org/2000/svg">
+            <title id="pipeline-title">Hardware-to-render pipeline</title>
+            <desc id="pipeline-desc">The leader arm supplies joint angles. Mirror mode sets angles directly; optional physics mode uses a PD controller to produce torques and advance physics, with simulated joint feedback to the controller. Either mode supplies forward kinematics and the renderer. The logger records joint angles, replays them into the same pipeline, and collects renderer timing and simulated angles for metrics.</desc>
+            <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker></defs>
+            <g class="wires" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#arrow)">
+              <path d="M120 110 H146"/><path d="M262 110 H282 V60 H308"/>
+              <path d="M262 110 H282 V140 H308"/>
+              <path d="M562 60 H590 V110 H620"/><path d="M562 140 H590 V110 H620"/>
+              <path d="M752 110 H778"/>
+              <path d="M204 136 V208 H308"/>
+              <path d="M338 188 V174 H234 V136"/>
+              <path d="M833 136 V208 H562"/>
+              <path d="M590 140 V186 H562"/>
+            </g>
+            <g class="node">
+              <rect x="4" y="84" width="116" height="52" rx="5"/>
+              <rect x="146" y="84" width="116" height="52" rx="5"/>
+              <rect x="308" y="26" width="254" height="68" rx="5"/>
+              <rect class="stretch-node" x="308" y="106" width="254" height="60" rx="5"/>
+              <rect x="620" y="84" width="132" height="52" rx="5"/>
+              <rect x="778" y="84" width="118" height="52" rx="5"/>
+              <rect x="308" y="188" width="254" height="52" rx="5"/>
+            </g>
+            <g class="diagram-text" text-anchor="middle">
+              <text x="62" y="107">Leader arm</text><text class="small" x="62" y="124">moved by hand</text>
+              <text x="204" y="107">Joint angles</text><text class="small" x="204" y="124">Python / LeRobot</text>
+              <text class="diagram-heading" x="435" y="50">Mirror mode</text><text x="435" y="74">Set angles directly</text>
+              <text class="diagram-heading" x="435" y="128">Physics mode · stretch</text><text x="435" y="150">PD → torques → physics step</text>
+              <text x="686" y="106">Forward</text><text x="686" y="124">kinematics</text>
+              <text x="837" y="107">Renderer</text><text class="small" x="837" y="124">C++ / OpenGL</text>
+              <text x="435" y="210">Logger / record + replay</text><text class="small" x="435" y="228">Joint angles + timing → metrics</text>
+              <text class="small" x="264" y="202">record</text><text class="small" x="270" y="170">replay</text>
+              <text class="small" x="696" y="201">frame timing</text>
+            </g>
+          </svg>
+          <figcaption>Live and replayed angles use the same pipeline. Physics mode also feeds simulated joint angles and velocities back to the PD controller.</figcaption>
+        </figure>
+      </section>
+    </div>
+
+    <div class="print-page">
+      <section aria-labelledby="goals">
+        <h2 id="goals"><span class="section-number">03 /</span> Goals and Deliverables</h2>
+        <h3>What we plan to deliver <span class="tag">Baseline</span></h3>
+        <ol class="deliverables">
+          <li><strong>Live mirror mode.</strong> Render the arm at 60+ FPS with low input-to-display latency. Motor sampling and rendering will run independently; we will report their rates separately.</li>
+          <li><strong>Our own model loader and kinematics.</strong> Parse the SO-101’s URDF and STL meshes, then compute joint and link transforms without robotics libraries.</li>
+          <li><strong>Our own OpenGL renderer.</strong> Implement shading, materials, and shadow mapping on a ground plane, with a movable camera for inspecting poses.</li>
+          <li><strong>Record and replay.</strong> Save timestamped joint-angle sessions and replay them at their original timing for repeatable demonstrations and measurements.</li>
+          <li><strong>Measured performance.</strong> Report end-to-end latency in milliseconds, FPS, and simulated versus measured joint-angle error.</li>
+        </ol>
+        <p class="scope-note">We will first complete one arm in mirror mode, using the SO-101 assets and a limited URDF feature set. Replay will support renderer work if hardware access is delayed. Physics work begins only after the baseline is complete.</p>
+
+        <h3>What we hope to deliver <span class="tag">Stretch</span></h3>
+        <ol class="deliverables">
+          <li><strong>Physics mode.</strong> Use measured angles as targets for a proportional-derivative (PD) controller that produces simulated torques. Implement Featherstone’s articulated-body algorithm (ABA), gravity, numerical integration, and joint limits ourselves.</li>
+          <li><strong>Ghost overlay.</strong> Show a transparent mirror-mode arm beside or over a solid physics arm, with plots of measured and simulated joint angles.</li>
+          <li><strong>Virtual contact and grasping.</strong> Add contact response and grasping of simple virtual objects if stable free-space dynamics is working.</li>
+        </ol>
+
+        <h3>Expected images and demo</h3>
+        <p>Our demo will show a person moving the leader while the 3D arm follows, then replay the same recorded motion. We will include matched real/rendered poses, close-ups of materials and contact shadows on the ground plane, and performance plots. If physics works, we will show the ghost overlay during slow and fast motions, followed by a virtual grasp if implemented.</p>
+
+        <h3>How we will measure quality</h3>
+        <dl class="measurements">
+          <div><dt>Latency</dt><dd>Film the physical arm and display together, count frames between matching motion events, and report median and 95th-percentile delay in ms, plus camera timing resolution. Internal timestamps will separate motor-read, processing, and rendering costs.</dd></div>
+          <div><dt>Frame rate</dt><dd>Target 60+ FPS during a repeatable session. Plot frame times and report median FPS and 95th-percentile frame time, with the laptop, resolution, and rendering settings.</dd></div>
+          <div><dt>Accuracy</dt><dd>Report per-joint mean absolute and maximum error in degrees between displayed state and timestamp-matched encoder readings. Since mirror mode copies input, also check physical joint angles at known poses and compare matched photos to catch calibration and transform errors.</dd></div>
+          <div><dt>Physics tracking</dt><dd>If implemented, measure per-joint tracking error and lag for slow sweeps and fast reversals. Report controller gains, timestep, and assumed masses and inertias.</dd></div>
+        </dl>
+
+        <h3>Questions we plan to answer</h3>
+        <p>How low can end-to-end latency go, and which stage limits it? How much do shadows and materials cost at 60 FPS? How closely does a simple dynamics model track the real arm, and where do calibration errors or model assumptions cause visible mismatch?</p>
+      </section>
+    </div>
+
+    <div class="print-page">
+      <section aria-labelledby="schedule">
+        <h2 id="schedule"><span class="section-number">04 /</span> Schedule</h2>
+        <p>Work starts November 13 after proposal feedback. Owners below are provisional; everyone will help integrate and test the system.</p>
+        <table class="owners">
+          <caption>Rough ownership</caption>
+          <thead><tr><th scope="col">Team member</th><th scope="col">Primary responsibility</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Rachael Chen</th><td>URDF/STL loader and forward kinematics</td></tr>
+            <tr><th scope="row">Edward Song</th><td>Hardware input and calibration</td></tr>
+            <tr><th scope="row">Kevin Yamashita</th><td>OpenGL renderer, shading, shadows, and materials</td></tr>
+            <tr><th scope="row"><span class="placeholder">[NAME 4]</span></th><td>Metrics, record/replay, and physics stretch, with team support</td></tr>
+          </tbody>
+        </table>
+        <table class="schedule">
+          <caption>Weekly plan · 2026</caption>
+          <thead><tr><th scope="col">Week</th><th scope="col">Tasks and checkpoints</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">01<br><span>Nov 13–19</span></th><td>Set up and calibrate hardware (2). Build the URDF/STL loader and forward kinematics (1). Render a static arm (3). Define logging and measurement formats (4).</td></tr>
+            <tr><th scope="row">02<br><span>Nov 20–26</span></th><td>Connect live input, kinematics, and rendering (1–3); capture preliminary metrics (4). Aim for an end-to-end mirror demo by Nov 21. <strong>Milestone due Nov 22:</strong> report, 1-minute video, and 2–3 slides (all). Continue integration and start renderer polish.</td></tr>
+            <tr><th scope="row">03<br><span>Nov 27–Dec 3</span></th><td>Finish shadows and materials (3), record/replay and metrics (4), and calibration checks (1–2). Begin physics mode only if the baseline is complete (4, supported by 1).</td></tr>
+            <tr><th scope="row">04<br><span>Dec 4–6</span></th><td>Timebox physics stretch work, fix remaining issues, and capture results. <strong>Final report and 1–2 minute video due Dec 6</strong> (all). Prepare for presentations on <strong>Dec 7–8</strong>.</td></tr>
+          </tbody>
+        </table>
+        <p class="small-note">Owner numbers refer to the team list above. Submission deadlines are 11:59 PM Pacific. If any member is in CS284A, use the required paper format for milestone and final reports.</p>
+      </section>
+
+      <section aria-labelledby="resources">
+        <h2 id="resources"><span class="section-number">05 /</span> Resources</h2>
+        <ul class="references">
+          <li><a href="https://huggingface.co/docs/lerobot/en/index">LeRobot documentation</a> and the <a href="https://huggingface.co/docs/lerobot/en/so101">SO-101 guide</a>: motor access, setup, and calibration.</li>
+          <li><a href="https://github.com/TheRobotStudio/SO-ARM100">TheRobotStudio / SO-ARM100</a>: SO-101 URDF and mesh assets. We will verify the model variant against our physical leader arm.</li>
+          <li>Roy Featherstone, <a href="https://doi.org/10.1007/978-1-4899-7560-7"><cite>Rigid Body Dynamics Algorithms</cite></a>, 2008: reference for our stretch dynamics implementation.</li>
+        </ul>
+        <p><strong>Platform:</strong> Python for LeRobot motor input and calibration; C++ for model loading, kinematics, OpenGL rendering, replay, metrics, and optional physics. We plan to use personal macOS laptops, GLFW for windows and input, GLAD for OpenGL function loading, and TinyXML2 for XML parsing. Our code will interpret the URDF and load STL geometry.</p>
+        <p><strong>Hardware:</strong> We plan to use one physical SO-101 leader arm with its interface and power supply. We will confirm access before the November 13 start; recorded or synthetic joint sequences will support development if access is delayed.</p>
+        <p class="starting-point"><strong>Starting point and our contribution.</strong> We will use LeRobot only for motor readings and calibration, and reuse the robot’s URDF and mesh assets. We will build the loader, forward kinematics, OpenGL renderer, logging, replay, and metrics ourselves, plus physics if time permits. We will not use a robotics library for loading or kinematics, or an existing physics engine.</p>
+        <p class="small-note"><strong>Existing team code:</strong> We plan to start a new codebase, using LeRobot and the robot assets as the external starting points.</p>
+      </section>
+      <footer>CS 184/284A · Fall 2026 <span>Robotic Arm Simulator · Project proposal</span></footer>
+    </div>
+  </main>
+</body>
+</html>

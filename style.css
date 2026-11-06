@@ -1,0 +1,142 @@
+:root {
+  color-scheme: light;
+  --ink: #20332f;
+  --muted: #53645e;
+  --accent: #246b59;
+  --line: #cdd8d1;
+  --paper: #fffefa;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #eeefe9;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+main {
+  max-width: 980px;
+  margin: 40px auto;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 40px #20332f08;
+}
+.print-page { padding: 44px 60px; }
+.print-page + .print-page { border-top: 1px solid var(--line); }
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 18px;
+  margin-bottom: 28px;
+  border-bottom: 2px solid var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .045em;
+}
+.section-label, .section-number {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .06em;
+}
+h1 { margin: 12px 0 4px; font-size: clamp(28px, 5vw, 44px); line-height: 1.15; letter-spacing: -.035em; }
+h1 .placeholder { color: var(--ink); background: none; padding: 0; }
+.subtitle { margin: 8px 0; font-size: 21px; line-height: 1.35; }
+.name-options { color: var(--muted); font-size: 12px; }
+.summary { margin: 22px 0 18px; font-size: 17px; line-height: 1.6; }
+.team, .site-link { font-size: 13px; }
+.site-link { margin: 18px 0 26px; }
+h2 { margin: 28px 0 14px; font-size: 23px; line-height: 1.25; letter-spacing: -.02em; }
+.print-page > section:first-child > h2 { margin-top: 0; }
+.section-number { display: inline-block; margin-right: 8px; vertical-align: middle; }
+h3 { margin: 23px 0 9px; font-size: 16px; line-height: 1.35; }
+p { margin: 0 0 12px; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; overflow-wrap: anywhere; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.placeholder { color: #70501e; background: #f8efd9; padding: 1px 3px; overflow-wrap: anywhere; }
+.tag { display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--line); padding: 2px 6px; vertical-align: middle; }
+ol, ul { margin: 8px 0 16px; padding-left: 23px; }
+li { padding-left: 3px; margin-bottom: 8px; }
+li::marker { color: var(--accent); font-weight: 600; }
+.scope-note, .starting-point { border-left: 2px solid var(--accent); padding-left: 14px; }
+.pipeline { margin: 22px 0 0; padding: 15px 12px 12px; border: 1px solid var(--line); border-radius: 6px; }
+svg { display: block; width: 100%; height: auto; color: var(--accent); }
+.node rect { fill: #f2f6f1; stroke: #a8bfb3; stroke-width: 1.3; }
+.node .stretch-node { fill: #fffefa; stroke-dasharray: 5 3; }
+.diagram-text { fill: var(--ink); font-family: Arial, sans-serif; font-size: 15px; }
+.diagram-text .small { font-size: 12px; fill: var(--muted); }
+.diagram-heading { font-weight: 700; }
+figcaption { margin-top: 8px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.measurements { margin: 0; }
+.measurements > div { display: grid; grid-template-columns: 126px 1fr; gap: 15px; padding: 10px 0; border-top: 1px solid var(--line); }
+dt { font-weight: 650; }
+dd { margin: 0; }
+table { width: 100%; border-collapse: collapse; margin: 18px 0 14px; font-size: 13px; text-align: left; }
+caption { text-align: left; margin-bottom: 7px; font-weight: 650; font-size: 14px; }
+th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; vertical-align: top; }
+thead th { background: #f2f6f1; color: var(--muted); font-size: 11px; font-weight: 600; }
+tbody th { width: 24%; font-weight: 600; }
+.schedule tbody th { width: 20%; color: var(--accent); font-size: 17px; }
+.schedule th span { display: block; color: var(--ink); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.small-note { color: var(--muted); font-size: 11px; }
+.references { font-size: 13px; }
+footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 26px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+
+@media screen and (max-width: 640px) {
+  body { font-size: 14px; }
+  main { margin: 0; border: 0; }
+  .print-page { padding: 28px 20px; }
+  .masthead, footer { flex-wrap: wrap; }
+  .subtitle { font-size: 19px; }
+  .summary { font-size: 16px; }
+  h2 { font-size: 21px; }
+  .measurements > div { grid-template-columns: 1fr; gap: 3px; }
+  .pipeline { padding: 10px 4px; }
+  th, td { padding: 8px 6px; }
+}
+
+/* Standard paper with natural flow: no fixed heights or clipped overflow.
+   Intentional breaks keep the proposal in three readable parts. */
+@page { size: auto; margin: .6in; }
+@media print {
+  body { background: white; color: #172820; font-size: 9.5pt; line-height: 1.32; }
+  main { max-width: none; width: auto; margin: 0; border: 0; box-shadow: none; background: white; }
+  .print-page { padding: 0; }
+  .print-page + .print-page { border: 0; break-before: page; page-break-before: always; }
+  .masthead { margin-bottom: 17pt; padding-bottom: 9pt; font-size: 8pt; }
+  .section-label, .section-number { font-size: 7.5pt; }
+  h1 { font-size: 30pt; margin-top: 8pt; }
+  .subtitle { font-size: 15pt; }
+  .name-options { font-size: 8pt; }
+  .summary { font-size: 11pt; line-height: 1.45; margin: 14pt 0 11pt; }
+  .team, .site-link { font-size: 8.5pt; }
+  .site-link { margin: 10pt 0 16pt; }
+  h2 { font-size: 16pt; margin: 14pt 0 8pt; }
+  h3 { font-size: 10.5pt; margin: 10pt 0 5pt; }
+  p { margin-bottom: 8pt; orphans: 3; widows: 3; }
+  h1, h2, h3, caption { break-after: avoid; page-break-after: avoid; }
+  li, tr, .measurements > div, .scope-note, .starting-point, figure, footer { break-inside: avoid; page-break-inside: avoid; }
+  ol, ul { margin: 5pt 0 10pt; padding-left: 16pt; }
+  li { margin-bottom: 4pt; }
+  .tag { font-size: 7pt; padding: 1pt 4pt; }
+  .placeholder { color: #604416; background: transparent; }
+  .pipeline { margin-top: 13pt; padding: 8pt; }
+  figcaption { font-size: 8pt; margin-top: 5pt; }
+  .measurements > div { grid-template-columns: 85pt 1fr; gap: 10pt; padding: 4pt 0; }
+  table { font-size: 8.5pt; margin: 10pt 0; }
+  caption { font-size: 9.5pt; margin-bottom: 4pt; }
+  th, td { padding: 4pt 7pt; }
+  thead { display: table-header-group; }
+  thead th { font-size: 8pt; }
+  .schedule tbody th { font-size: 12pt; }
+  .schedule th span { font-size: 8pt; }
+  .small-note { font-size: 7.5pt; }
+  .references { font-size: 9pt; }
+  footer { font-size: 7pt; margin-top: 15pt; padding-top: 8pt; }
+  a { color: #225543; }
+}
